@@ -118,7 +118,9 @@ static const char *transport_states[] = {
 	"STOPPED",
 	"PLAYING",
 	"TRANSITIONING",
-	"PAUSED_PLAYBACK",
+	// NOTE: This goes against the DLNA spec it should be "PAUSED_PLAYBACK",
+	//       but Jellyfin doesn't follow the spec properly as it expects either "PausedPlayback" or "Paused".
+	"PAUSED",
 	"PAUSED_RECORDING",
 	"RECORDING",
 	"NO_MEDIA_PRESENT",
