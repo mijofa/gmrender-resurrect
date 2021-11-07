@@ -153,8 +153,11 @@ static int output_gstreamer_play(output_transition_cb_t callback) {
 		}
 		g_object_set(G_OBJECT(player_), "uri", gsuri_, NULL);
 	}
-	if (gst_element_set_state(player_, GST_STATE_PLAYING) ==
-	    GST_STATE_CHANGE_FAILURE) {
+	GstStateChangeReturn play_state_change = gst_element_set_state(player_, GST_STATE_PLAYING);
+	if (play_state_change == GST_STATE_CHANGE_ASYNC) {
+		// FIXME (mijofa): Wait loops like this are NEVER a good idea, but I don't currently understand async in C enough to do better
+		while (get_current_player_state() == GST_STATE_READY) {}
+	} else if (play_state_change == GST_STATE_CHANGE_FAILURE) {
 		Log_error("gstreamer", "setting play state failed (2)");
 		return -1;
 	}
