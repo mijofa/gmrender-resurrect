@@ -124,7 +124,9 @@ static void scan_mime_list(void)
 
 static GstElement *player_ = NULL;
 static char *gsuri_ = NULL;         // locally strdup()ed
+static char *gssuburi_ = NULL;      // locally strdup()ed
 static char *gs_next_uri_ = NULL;   // locally strdup()ed
+static char *gs_next_suburi_ = NULL;   // locally strdup()ed
 static struct SongMetaData song_meta_;
 
 static output_transition_cb_t play_trans_callback_ = NULL;
@@ -152,6 +154,7 @@ static int output_gstreamer_play(output_transition_cb_t callback) {
 			// Error, but continue; can't get worse :)
 		}
 		g_object_set(G_OBJECT(player_), "uri", gsuri_, NULL);
+		g_object_set(G_OBJECT(player_), "suburi", gssuburi_, NULL);
 	}
 	GstStateChangeReturn play_state_change = gst_element_set_state(player_, GST_STATE_PLAYING);
 	if (play_state_change == GST_STATE_CHANGE_ASYNC) {
@@ -197,6 +200,12 @@ static void output_gstreamer_set_next_uri(const char *uri) {
 	gs_next_uri_ = (uri && *uri) ? strdup(uri) : NULL;
 }
 
+static void output_gstreamer_set_next_suburi(const char *suburi) {
+	Log_info("gstreamer", "Set next suburi to '%s'", suburi);
+	free(gs_next_suburi_);
+	gs_next_suburi_ = (suburi && *suburi) ? strdup(suburi) : NULL;
+}
+
 static void output_gstreamer_set_uri(const char *uri,
 				     output_update_meta_cb_t meta_cb) {
 	Log_info("gstreamer", "Set uri to '%s'", uri);
@@ -208,6 +217,12 @@ static void output_gstreamer_set_uri(const char *uri,
 	// If already playing, update the playbin's URI
 	if (get_current_player_state() == GST_STATE_PLAYING)
 		output_gstreamer_play(play_trans_callback_);
+}
+
+static void output_gstreamer_set_suburi(const char *suburi) {
+	Log_info("gstreamer", "Set suburi to '%s'", suburi);
+	free(gssuburi_);
+	gssuburi_ = (suburi && *suburi) ? strdup(suburi) : NULL;
 }
 
 #if 0
@@ -291,6 +306,11 @@ static gboolean my_bus_callback(GstBus * bus, GstMessage * msg,
 			gs_next_uri_ = NULL;
 			gst_element_set_state(player_, GST_STATE_READY);
 			g_object_set(G_OBJECT(player_), "uri", gsuri_, NULL);
+			if (gs_next_suburi_ != NULL) {
+				gssuburi_ = gs_next_suburi_;
+				gs_next_suburi_ = NULL;
+				g_object_set(G_OBJECT(player_), "suburi", gssuburi_, NULL);
+			}
 			gst_element_set_state(player_, GST_STATE_PLAYING);
 			if (play_trans_callback_) {
 				play_trans_callback_(PLAY_STARTED_NEXT_STREAM);
@@ -491,8 +511,13 @@ static void prepare_next_stream(GstElement *obj, gpointer userdata) {
 	free(gsuri_);
 	gsuri_ = gs_next_uri_;
 	gs_next_uri_ = NULL;
+	gssuburi_ = gs_next_suburi_;
+	gs_next_suburi_ = NULL;
 	if (gsuri_ != NULL) {
 		g_object_set(G_OBJECT(player_), "uri", gsuri_, NULL);
+		if (gssuburi_ != NULL) {
+			g_object_set(G_OBJECT(player_), "suburi", gssuburi_, NULL);
+		}
 		if (play_trans_callback_) {
 			// TODO(hzeller): can we figure out when we _actually_
 			// start playing this ? there are probably a couple
@@ -612,7 +637,9 @@ struct output_module gstreamer_output = {
 
 	.init        = output_gstreamer_init,
 	.set_uri     = output_gstreamer_set_uri,
+	.set_suburi  = output_gstreamer_set_suburi,
 	.set_next_uri= output_gstreamer_set_next_uri,
+	.set_next_suburi= output_gstreamer_set_next_suburi,
 	.play        = output_gstreamer_play,
 	.stop        = output_gstreamer_stop,
 	.pause       = output_gstreamer_pause,

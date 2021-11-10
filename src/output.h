@@ -46,7 +46,9 @@ void output_dump_modules(void);
 int output_loop(void);
 
 void output_set_uri(const char *uri, output_update_meta_cb_t meta_info);
+void output_set_suburi(const char *suburi);
 void output_set_next_uri(const char *uri);
+void output_set_next_suburi(const char *suburi);
 
 int output_play(output_transition_cb_t done_callback);
 int output_stop(void);
