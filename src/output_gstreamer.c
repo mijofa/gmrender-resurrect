@@ -295,8 +295,11 @@ static gboolean my_bus_callback(GstBus * bus, GstMessage * msg,
 			if (play_trans_callback_) {
 				play_trans_callback_(PLAY_STARTED_NEXT_STREAM);
 			}
-		} else if (play_trans_callback_) {
-			play_trans_callback_(PLAY_STOPPED);
+		} else {
+			output_gstreamer_stop(); // Let gstreamer close its output sinks
+			if (play_trans_callback_) {
+				play_trans_callback_(PLAY_STOPPED);
+			}
 		}
 		break;
 
